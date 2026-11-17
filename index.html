@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src https://api.github.com; base-uri 'none'; form-action 'none'; object-src 'none'">
+  <title>Controlled OAuth origin check</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="probe.js" defer></script>
+</head>
+<body>
+  <main>
+    <h1>Controlled OAuth origin check</h1>
+    <p>Use only a disposable GitHub account with no repositories or organization access. This page has no backend or third-party scripts. It checks a token with GitHub and does not display or include the token in its evidence file.</p>
+
+    <label for="auth-url">Authorization URL</label>
+    <input id="auth-url" type="url" placeholder="https://.../api/cms/auth" autocomplete="off" spellcheck="false" required>
+    <button id="start" type="button">Open authorization popup</button>
+
+    <h2>Result</h2>
+    <pre id="result" role="status" aria-live="polite">Waiting for a controlled test.</pre>
+    <button id="download" type="button" disabled>Download token-free result</button>
+  </main>
+</body>
+</html>
