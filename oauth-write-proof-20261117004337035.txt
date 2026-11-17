@@ -1,0 +1,4 @@
+Controlled OAuth repository write proof
+Observed at: 2026-11-17T00:43:37.035Z
+Repository: kevlardel12/oauth-origin-check-2026
+No token is included.
