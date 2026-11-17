@@ -12,11 +12,11 @@
 <body>
   <main>
     <h1>Controlled OAuth origin check</h1>
-    <p>Use only a disposable GitHub account with no repositories or organization access. This page has no backend or third-party scripts. It checks a token with GitHub and does not display or include the token in its evidence file.</p>
+    <p>Use only the disposable kevlardel12 GitHub account. This page checks the callback token with GitHub, then creates one harmless proof file in that account's public oauth-origin-check-2026 repository. It has no backend or third-party scripts and never displays the token or includes it in its evidence file.</p>
 
     <label for="auth-url">Authorization URL</label>
     <input id="auth-url" type="url" placeholder="https://.../api/cms/auth" autocomplete="off" spellcheck="false" required>
-    <button id="start" type="button">Open authorization popup</button>
+    <button id="start" type="button">Open authorization popup and run write check</button>
 
     <h2>Result</h2>
     <pre id="result" role="status" aria-live="polite">Waiting for a controlled test.</pre>
